@@ -4,6 +4,7 @@ require "parallel"
 module NEAT
   class Population
     attr_reader :config, :tracker, :genomes, :species, :generation
+    attr_accessor :on_generation
 
     def initialize(config, state: nil)
       @config = config
@@ -52,12 +53,26 @@ module NEAT
       @generation += 1
     end
 
-    def run(generations)
-      generations.times do
+    # fitness block: called per genome during evaluate!
+    # on_generation: optional callback(population, step:, total:, final:)
+    # after each evaluated generation (including a final re-score).
+    def run(generations, on_generation: nil)
+      raise ArgumentError, "fitness block required" unless block_given?
+
+      callback = on_generation || @on_generation
+      generations.times do |index|
         evaluate! { |genome| yield(genome) }
+        emit_generation(callback, step: index + 1, total: generations, final: false)
         evolve!
       end
       evaluate! { |genome| yield(genome) }
+      emit_generation(callback, step: generations, total: generations, final: true)
+    end
+
+    def mean_fitness
+      return 0.0 if @genomes.empty?
+
+      @genomes.sum { |genome| genome.fitness.to_f } / @genomes.size
     end
 
     def to_h
@@ -88,6 +103,13 @@ module NEAT
     end
 
     private
+
+    def emit_generation(callback, step:, total:, final:)
+      return if callback.nil?
+
+      callback.call(self, step: step, total: total, final: final)
+    end
+
     def prepare_species_shells
       return if @species.empty?
 

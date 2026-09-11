@@ -117,3 +117,14 @@ bundle exec rspec
 ```
 
 CI runs the same suite on Ruby 3.3 and 3.4.
+
+
+## Generation progress
+
+`Population#run` accepts an `on_generation` callback (or set `population.on_generation=`) invoked after each evaluation:
+
+```ruby
+pop.run(50, on_generation: ->(pop, step:, total:, final:) {
+  puts "gen #{step}/#{total} best=#{pop.best.fitness} mean=#{pop.mean_fitness}"
+}) { |genome| fitness_of(genome) }
+```

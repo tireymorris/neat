@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name = "neat"
-  spec.version = "0.1.0"
+  spec.version = "0.1.1"
   spec.authors = ["Tim Morris"]
   spec.summary = "NEAT (NeuroEvolution of Augmenting Topologies) library for Ruby"
   spec.description = "Evolve neural network topologies and weights with speciation, historical marking, and structural mutation."
