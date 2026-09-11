@@ -24,6 +24,8 @@ module NEAT
         id = @config.inputs + o
         add_node(NodeGene.new(id, :output, activation: @config.activation_default, layer: 1))
       end
+
+      @tracker.reserve_node_ids(@config.inputs + @config.outputs)
     end
 
     def build_initial_connections
@@ -228,17 +230,21 @@ module NEAT
         g1 = parent1.connection_genes[innov]
         g2 = parent2.connection_genes[innov]
         selected = nil
+        source = nil
 
         if g1 && g2
-          selected = (@config.rng.rand < 0.5 ? g1 : g2).dup
+          source = @config.rng.rand < 0.5 ? parent1 : parent2
+          selected = (source == parent1 ? g1 : g2).dup
         elsif g1
+          source = parent1
           selected = g1.dup
         end
 
-        if selected
-          selected.enabled = true if !selected.enabled && @config.rng.rand < @config.reenable_rate
-          child.add_connection(selected)
-        end
+        next unless selected
+
+        selected.enabled = true if !selected.enabled && @config.rng.rand < @config.reenable_rate
+        ensure_nodes_for_connection!(child, source, selected)
+        child.add_connection(selected)
       end
 
       child
@@ -254,6 +260,15 @@ module NEAT
 
     def nodes_of_type(type)
       @node_genes.values.select { |n| n.type == type }
+    end
+
+    private
+
+    def ensure_nodes_for_connection!(child, source, connection)
+      [connection.in_node, connection.out_node].each do |node_id|
+        next if child.node_genes.key?(node_id)
+        child.add_node(source.node_genes[node_id].dup)
+      end
     end
   end
 end

@@ -15,7 +15,10 @@ module NEAT
                   :initial_connection_prob,
                   :activation_default,
                   :recurrent_allowed,
-                  :reenable_rate
+                  :reenable_rate,
+                  :survival_threshold,
+                  :crossover_rate,
+                  :interspecies_mate_rate
     attr_reader :seed
 
     def initialize
@@ -35,6 +38,9 @@ module NEAT
       @activation_default = :sigmoid
       @recurrent_allowed = false
       @reenable_rate = 0.25
+      @survival_threshold = 0.2
+      @crossover_rate = 0.75
+      @interspecies_mate_rate = 0.001
       @seed = nil
     end
 

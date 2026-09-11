@@ -36,5 +36,11 @@ RSpec.describe NEAT::InnovationTracker do
       second = tracker.new_node_split(0, 1)
       expect(second).to eq(first)
     end
+
+    it "assigns node ids at or above the reserved floor" do
+      tracker.reserve_node_ids(5)
+      node_id, = tracker.new_node_split(0, 1)
+      expect(node_id).to be >= 5
+    end
   end
 end

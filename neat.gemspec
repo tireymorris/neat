@@ -3,7 +3,7 @@ Gem::Specification.new do |spec|
   spec.version = "0.1.0"
   spec.authors = ["Your Name"]
   spec.summary = "NEAT (NeuroEvolution of Augmenting Topologies) library for Ruby"
-  spec.files = Dir.glob("lib/**/*") + %w[README.md]
+  spec.files = Dir.glob("lib/**/*")
   spec.require_paths = ["lib"]
 
   spec.add_development_dependency "rspec", "~> 3.13"

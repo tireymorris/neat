@@ -91,8 +91,9 @@ RSpec.describe NEAT::Genome do
     describe "#mutate_add_node" do
       it "splits an enabled connection into two connections" do
         genome = described_class.new(config, tracker)
-        expect { genome.mutate_add_node }.to change { genome.connection_genes.size }.by(1)
+        expect { genome.mutate_add_node }.to change { genome.connection_genes.size }.by(2)
         expect(genome.node_genes.values.count(&:hidden?)).to eq(1)
+        expect(genome.connection_genes.values.count { |c| !c.enabled }).to eq(1)
       end
     end
   end
@@ -123,6 +124,36 @@ RSpec.describe NEAT::Genome do
       child = parent1.crossover(parent2)
       expect(child.node_genes.size).to be >= parent1.node_genes.size
       expect(child.connection_genes.size).to be >= parent1.connection_genes.size
+    end
+
+    it "includes hidden nodes required by the fitter parent's genes" do
+      parent1 = described_class.new(config, tracker)
+      parent1.mutate_add_node
+      parent1.fitness = 10.0
+      parent2 = described_class.new(config, tracker)
+      parent2.fitness = 1.0
+
+      child = parent1.crossover(parent2)
+
+      expect(child.node_genes.values.count(&:hidden?)).to eq(1)
+      expect(child.connection_genes.size).to eq(parent1.connection_genes.size)
+      expect(child.evaluate([1.0, 0.0]).size).to eq(1)
+    end
+
+    it "inherits disjoint genes only from the fitter parent" do
+      parent1 = described_class.new(config, tracker)
+      parent1.fitness = 10.0
+      parent2 = described_class.new(config, tracker)
+      parent2.fitness = 1.0
+      parent2.mutate_add_node
+
+      child = parent1.crossover(parent2)
+
+      expect(child.node_genes.values.count(&:hidden?)).to eq(0)
+      parent2.connection_genes.each_key do |innov|
+        next if parent1.connection_genes.key?(innov)
+        expect(child.connection_genes).not_to have_key(innov)
+      end
     end
   end
 end

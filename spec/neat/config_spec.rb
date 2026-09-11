@@ -21,6 +21,12 @@ RSpec.describe NEAT::Config do
       expect(config.compatibility_threshold).to eq(3.0)
     end
 
+    it "has default reproduction settings" do
+      expect(config.survival_threshold).to eq(0.2)
+      expect(config.crossover_rate).to eq(0.75)
+      expect(config.interspecies_mate_rate).to eq(0.001)
+    end
+
     it "provides a deterministic random number generator when seeded" do
       config.seed = 123
       first = config.rng.rand
