@@ -93,6 +93,7 @@ Population dumps include config, the shared innovation tracker, generation count
 | `bias_mutation_rate` / `bias_perturb_rate` | `0.7` / `0.9` | Mutate non-input node biases (same style as weights) |
 | `activation_mutation_rate` | `0.0` | Opt-in swap among `allowed_activations` for hidden/output nodes |
 | `allowed_activations` | `%i[sigmoid tanh relu]` | Activation choices for mutation |
+| `evaluation_workers` | `1` | Process count for parallel `Population#evaluate!` (set `>1` to use CPU cores) |
 | `recurrent_allowed` | `false` | **Ignored** — this library is feedforward-only; kept for dump/load compatibility |
 
 See `lib/neat/config.rb` for all defaults.

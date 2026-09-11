@@ -11,5 +11,6 @@ Gem::Specification.new do |spec|
   spec.executables = ["neat"]
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "parallel", "~> 1.26"
   spec.add_development_dependency "rspec", "~> 3.13"
 end

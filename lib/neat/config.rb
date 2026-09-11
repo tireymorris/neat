@@ -7,7 +7,7 @@ module NEAT
       initial_connection_prob activation_default recurrent_allowed reenable_rate
       survival_threshold crossover_rate interspecies_mate_rate seed
       max_stagnation bias_mutation_rate bias_perturb_rate
-      activation_mutation_rate allowed_activations
+      activation_mutation_rate allowed_activations evaluation_workers
     ].freeze
 
     attr_accessor :population_size,
@@ -33,7 +33,8 @@ module NEAT
                   :bias_mutation_rate,
                   :bias_perturb_rate,
                   :activation_mutation_rate,
-                  :allowed_activations
+                  :allowed_activations,
+                  :evaluation_workers
     attr_reader :seed
 
     def initialize
@@ -51,7 +52,6 @@ module NEAT
       @compatibility_threshold = 3.0
       @initial_connection_prob = 1.0
       @activation_default = :sigmoid
-      # Feedforward only. Kept for dump/load compatibility; ignored when adding connections.
       @recurrent_allowed = false
       @reenable_rate = 0.25
       @survival_threshold = 0.2
@@ -62,6 +62,7 @@ module NEAT
       @bias_perturb_rate = 0.9
       @activation_mutation_rate = 0.0
       @allowed_activations = %i[sigmoid tanh relu]
+      @evaluation_workers = 1
       @seed = nil
     end
 

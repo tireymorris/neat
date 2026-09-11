@@ -125,8 +125,6 @@ module NEAT
       candidates = []
       nodes = @node_genes.values
 
-      # Feedforward only: connections must go from lower layer to higher layer.
-      # Config#recurrent_allowed is ignored (kept for serialization compatibility).
       nodes.each do |src|
         nodes.each do |dst|
           next if src.id == dst.id
@@ -336,7 +334,6 @@ module NEAT
     end
 
     private
-
     def phenotype
       unless @phenotype_order
         @phenotype_order = topological_order

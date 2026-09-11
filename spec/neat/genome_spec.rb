@@ -39,8 +39,6 @@ RSpec.describe NEAT::Genome do
 
     it "raises when the network contains a cycle" do
       genome = described_class.new(config, tracker)
-      # Manually create a cycle by adding a connection from output back to input.
-      # This requires bypassing the normal feedforward mutation restrictions.
       innov = tracker.new_connection(config.inputs, 0)
       genome.add_connection(NEAT::ConnectionGene.new(config.inputs, 0, weight: 1.0, innovation: innov))
       expect { genome.evaluate([1.0, 0.0]) }.to raise_error(NEAT::CyclicNetworkError)
@@ -77,7 +75,6 @@ RSpec.describe NEAT::Genome do
 
     describe "#mutate_add_connection" do
       it "adds a new feedforward connection" do
-        # Add a hidden node manually so there is a place for a new connection.
         genome = described_class.new(config, tracker)
         node_innov, in_innov, out_innov = tracker.new_node_split(0, config.inputs)
         genome.add_node(NEAT::NodeGene.new(node_innov, :hidden, layer: 0.5))

@@ -1,4 +1,5 @@
 require "json"
+require "parallel"
 
 module NEAT
   class Population
@@ -19,8 +20,17 @@ module NEAT
       end
     end
 
-    def evaluate!
-      @genomes.each { |genome| genome.fitness = yield(genome) }
+    def evaluate!(&block)
+      raise ArgumentError, "block required" unless block
+
+      workers = @config.evaluation_workers.to_i
+      if workers <= 1
+        @genomes.each { |genome| genome.fitness = block.call(genome) }
+        return
+      end
+
+      fitnesses = Parallel.map(@genomes, in_processes: workers) { |genome| block.call(genome) }
+      @genomes.each_with_index { |genome, index| genome.fitness = fitnesses[index] }
     end
 
     def best
@@ -78,7 +88,6 @@ module NEAT
     end
 
     private
-
     def prepare_species_shells
       return if @species.empty?
 
