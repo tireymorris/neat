@@ -11,6 +11,12 @@ module NEAT
       @next_node_id = count if count > @next_node_id
     end
 
+    def allocate_node_id
+      id = @next_node_id
+      @next_node_id += 1
+      id
+    end
+
     def new_connection(in_node, out_node)
       key = [in_node, out_node]
       @connection_innovations[key] ||= begin

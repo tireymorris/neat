@@ -305,6 +305,62 @@ module NEAT
       }
     end
 
+
+    def self.reencode_from_h(hash, config:, tracker:)
+      data = hash.transform_keys(&:to_sym)
+      genome = new(config, tracker, build_initial: false)
+      id_map = {}
+
+      nodes = data.fetch(:node_genes).map { |node| NodeGene.from_h(node) }
+      nodes.sort_by(&:id).each do |node|
+        if node.input? || node.output?
+          id_map[node.id] = node.id
+          genome.add_node(
+            NodeGene.new(
+              node.id,
+              node.type,
+              bias: node.bias,
+              activation: node.activation,
+              layer: node.layer
+            )
+          )
+        else
+          new_id = tracker.allocate_node_id
+          id_map[node.id] = new_id
+          genome.add_node(
+            NodeGene.new(
+              new_id,
+              :hidden,
+              bias: node.bias,
+              activation: node.activation,
+              layer: node.layer
+            )
+          )
+        end
+      end
+
+      tracker.reserve_node_ids(config.inputs + config.outputs)
+
+      data.fetch(:connection_genes).each do |conn_hash|
+        conn = ConnectionGene.from_h(conn_hash)
+        in_id = id_map.fetch(conn.in_node)
+        out_id = id_map.fetch(conn.out_node)
+        innov = tracker.new_connection(in_id, out_id)
+        genome.add_connection(
+          ConnectionGene.new(
+            in_id,
+            out_id,
+            weight: conn.weight,
+            enabled: conn.enabled,
+            innovation: innov
+          )
+        )
+      end
+
+      genome.fitness = deserialize_float(data.fetch(:fitness))
+      genome
+    end
+
     def self.from_h(hash, config:, tracker:)
       data = hash.transform_keys(&:to_sym)
       genome = new(config, tracker, build_initial: false)
