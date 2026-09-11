@@ -90,5 +90,32 @@ RSpec.describe NEAT::Population do
       expect(subject.generation).to eq(3)
       expect(subject.genomes.map(&:fitness)).to all(eq(1.0))
     end
+
+    it "reports generation progress through on_generation" do
+      steps = []
+      subject.run(2, on_generation: ->(pop, step:, total:, final:) {
+        steps << [step, total, final, pop.generation, pop.best.fitness, pop.mean_fitness]
+      }) { |_genome| 1.5 }
+
+      expect(steps.size).to eq(3)
+      expect(steps.map { |row| row[0] }).to eq([1, 2, 2])
+      expect(steps.map { |row| row[2] }).to eq([false, false, true])
+      expect(subject.generation).to eq(2)
+      expect(subject.mean_fitness).to eq(1.5)
+    end
+
+    it "honors population.on_generation when keyword omitted" do
+      seen = 0
+      subject.on_generation = ->(_pop, step:, total:, final:) { seen += 1 }
+      subject.run(1) { |_genome| 2.0 }
+      expect(seen).to eq(2)
+    end
+  end
+
+  describe "#mean_fitness" do
+    it "averages genome fitness" do
+      subject.genomes.each_with_index { |genome, index| genome.fitness = index.to_f }
+      expect(subject.mean_fitness).to eq(subject.genomes.map(&:fitness).sum / subject.genomes.size)
+    end
   end
 end
