@@ -1,0 +1,80 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "neat"
+
+XOR_CASES = [
+  [[1.0, 0.0, 0.0], 0.0],
+  [[1.0, 0.0, 1.0], 1.0],
+  [[1.0, 1.0, 0.0], 1.0],
+  [[1.0, 1.0, 1.0], 0.0]
+].freeze
+
+options = {
+  generations: 100,
+  seed: 1,
+  population_size: 150,
+  dump: nil
+}
+
+while (arg = ARGV.shift)
+  case arg
+  when "--generations", "-g" then options[:generations] = Integer(ARGV.shift)
+  when "--seed", "-s" then options[:seed] = Integer(ARGV.shift)
+  when "--population-size", "-p" then options[:population_size] = Integer(ARGV.shift)
+  when "--dump" then options[:dump] = ARGV.shift
+  when "--help", "-h"
+    puts <<~HELP
+      Usage: neat [options]
+
+      Evolve a NEAT network that learns XOR.
+
+      Options:
+        -g, --generations N       Generations to run (default: 100)
+        -s, --seed N              Random seed (default: 1)
+        -p, --population-size N   Population size (default: 150)
+            --dump PATH           Write the final population to JSON
+        -h, --help                Show this help message
+    HELP
+    exit 0
+  else
+    warn "Unknown option: #{arg}"
+    exit 1
+  end
+end
+
+config = NEAT::Config.new.tap do |c|
+  c.population_size = options[:population_size]
+  c.inputs = 3
+  c.outputs = 1
+  c.compatibility_threshold = 3.0
+  c.add_connection_rate = 0.3
+  c.add_node_rate = 0.1
+  c.seed = options[:seed]
+end
+
+fitness = NEAT::Fitness.evaluator(XOR_CASES) { |error| (4.0 - error)**2 }
+population = NEAT::Population.new(config)
+
+options[:generations].times do |generation|
+  population.evaluate!(&fitness)
+  best = population.best
+  outputs = XOR_CASES.map { |inputs, _| best.evaluate(inputs).first.round(3) }
+  puts "gen=#{generation} fitness=#{best.fitness.round(3)} outputs=#{outputs}"
+  break if NEAT::Fitness.solved?(best, XOR_CASES)
+
+  population.evolve!
+end
+
+population.evaluate!(&fitness)
+best = population.best
+puts "best fitness=#{best.fitness.round(3)}"
+XOR_CASES.each do |inputs, target|
+  output = best.evaluate(inputs).first
+  puts "  #{inputs[1].to_i} XOR #{inputs[2].to_i} => #{output.round(4)} (target #{target.to_i})"
+end
+
+if options[:dump]
+  File.write(options[:dump], population.dump)
+  puts "wrote population to #{options[:dump]}"
+end

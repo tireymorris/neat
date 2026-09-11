@@ -1,3 +1,5 @@
+require "json"
+
 module NEAT
   class Genome
     attr_accessor :fitness, :config, :tracker, :node_genes, :connection_genes
@@ -258,11 +260,55 @@ module NEAT
       copy
     end
 
+    def to_h
+      {
+        fitness: serialize_float(@fitness),
+        node_genes: @node_genes.values.sort_by(&:id).map(&:to_h),
+        connection_genes: @connection_genes.values.sort_by(&:innovation).map(&:to_h)
+      }
+    end
+
+    def self.from_h(hash, config:, tracker:)
+      data = hash.transform_keys(&:to_sym)
+      genome = new(config, tracker, build_initial: false)
+      genome.fitness = deserialize_float(data.fetch(:fitness))
+      data.fetch(:node_genes).each { |node| genome.add_node(NodeGene.from_h(node)) }
+      data.fetch(:connection_genes).each { |conn| genome.add_connection(ConnectionGene.from_h(conn)) }
+      genome
+    end
+
+    def dump(io = nil)
+      json = JSON.pretty_generate(to_h)
+      io ? io.write(json) : json
+    end
+
+    def self.load(source, config:, tracker:)
+      hash = source.is_a?(String) ? JSON.parse(source) : source
+      from_h(hash, config: config, tracker: tracker)
+    end
+
     def nodes_of_type(type)
       @node_genes.values.select { |n| n.type == type }
     end
 
     private
+
+    def serialize_float(value)
+      return "Infinity" if value == Float::INFINITY
+      return "-Infinity" if value == -Float::INFINITY
+      return "NaN" if value.respond_to?(:nan?) && value.nan?
+
+      value
+    end
+
+    def self.deserialize_float(value)
+      case value
+      when "Infinity" then Float::INFINITY
+      when "-Infinity" then -Float::INFINITY
+      when "NaN" then Float::NAN
+      else value
+      end
+    end
 
     def ensure_nodes_for_connection!(child, source, connection)
       [connection.in_node, connection.out_node].each do |node_id|

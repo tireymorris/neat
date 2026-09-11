@@ -1,5 +1,13 @@
 module NEAT
   class Config
+    SERIALIZABLE_KEYS = %i[
+      population_size inputs outputs excess_coefficient disjoint_coefficient
+      weight_coefficient add_connection_rate add_node_rate toggle_enable_rate
+      weight_mutation_rate weight_perturb_rate compatibility_threshold
+      initial_connection_prob activation_default recurrent_allowed reenable_rate
+      survival_threshold crossover_rate interspecies_mate_rate seed
+    ].freeze
+
     attr_accessor :population_size,
                   :inputs,
                   :outputs,
@@ -51,6 +59,19 @@ module NEAT
 
     def rng
       @rng ||= @seed ? Random.new(@seed) : Random.new
+    end
+
+    def to_h
+      SERIALIZABLE_KEYS.each_with_object({}) { |key, hash| hash[key] = public_send(key) }
+    end
+
+    def self.from_h(hash)
+      config = new
+      hash.transform_keys(&:to_sym).slice(*SERIALIZABLE_KEYS).each do |key, value|
+        value = value.to_sym if key == :activation_default && value
+        config.public_send("#{key}=", value)
+      end
+      config
     end
   end
 end

@@ -5,6 +5,7 @@ require_relative "neat/innovation_tracker"
 require_relative "neat/genome"
 require_relative "neat/species"
 require_relative "neat/population"
+require_relative "neat/fitness"
 
 module NEAT
   class Error < StandardError; end

@@ -10,12 +10,7 @@ XOR_CASES = [
   [[1.0, 1.0, 1.0], 0.0]
 ].freeze
 
-def xor_fitness(genome)
-  error = XOR_CASES.sum do |inputs, target|
-    (genome.evaluate(inputs).first - target).abs
-  end
-  (4.0 - error)**2
-end
+fitness = NEAT::Fitness.evaluator(XOR_CASES) { |error| (4.0 - error)**2 }
 
 config = NEAT::Config.new.tap do |c|
   c.population_size = 150
@@ -30,17 +25,18 @@ end
 population = NEAT::Population.new(config)
 
 100.times do |generation|
-  population.evaluate! { |genome| xor_fitness(genome) }
+  population.evaluate!(&fitness)
   best = population.best
   outputs = XOR_CASES.map { |inputs, _| best.evaluate(inputs).first.round(3) }
   puts "gen=#{generation} fitness=#{best.fitness.round(3)} outputs=#{outputs}"
-  break if XOR_CASES.all? { |inputs, target| (best.evaluate(inputs).first - target).abs < 0.5 }
+  break if NEAT::Fitness.solved?(best, XOR_CASES)
 
   population.evolve!
 end
 
+population.evaluate!(&fitness)
 best = population.best
-puts "best fitness=#{best.fitness}"
+puts "best fitness=#{best.fitness.round(3)}"
 XOR_CASES.each do |inputs, target|
   output = best.evaluate(inputs).first
   puts "  #{inputs[1].to_i} XOR #{inputs[2].to_i} => #{output.round(4)} (target #{target.to_i})"

@@ -25,6 +25,21 @@ module NEAT
     def dup
       NodeGene.new(@id, @type, bias: @bias, activation: @activation, layer: @layer)
     end
+
+    def to_h
+      { id: @id, type: @type, bias: @bias, activation: @activation, layer: @layer }
+    end
+
+    def self.from_h(hash)
+      data = hash.transform_keys(&:to_sym)
+      new(
+        data[:id],
+        data[:type].to_sym,
+        bias: data[:bias],
+        activation: data[:activation].to_sym,
+        layer: data[:layer]
+      )
+    end
   end
 
   class ConnectionGene
@@ -40,6 +55,21 @@ module NEAT
 
     def dup
       ConnectionGene.new(@in_node, @out_node, weight: @weight, enabled: @enabled, innovation: @innovation)
+    end
+
+    def to_h
+      { in_node: @in_node, out_node: @out_node, weight: @weight, enabled: @enabled, innovation: @innovation }
+    end
+
+    def self.from_h(hash)
+      data = hash.transform_keys(&:to_sym)
+      new(
+        data[:in_node],
+        data[:out_node],
+        weight: data[:weight],
+        enabled: data[:enabled],
+        innovation: data[:innovation]
+      )
     end
   end
 end

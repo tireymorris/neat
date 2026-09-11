@@ -7,17 +7,11 @@ RSpec.describe "XOR experiment" do
   ].freeze
 
   def xor_fitness(genome)
-    error = XOR_CASES.sum do |inputs, target|
-      (genome.evaluate(inputs).first - target).abs
-    end
-    (4.0 - error)**2
+    NEAT::Fitness.evaluator(XOR_CASES) { |error| (4.0 - error)**2 }.call(genome)
   end
 
   def solved?(genome)
-    XOR_CASES.all? do |inputs, target|
-      output = genome.evaluate(inputs).first
-      (output - target).abs < 0.5
-    end
+    NEAT::Fitness.solved?(genome, XOR_CASES)
   end
 
   it "evolves a network that solves XOR" do

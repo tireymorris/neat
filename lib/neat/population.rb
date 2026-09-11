@@ -1,13 +1,22 @@
+require "json"
+
 module NEAT
   class Population
     attr_reader :config, :tracker, :genomes, :species, :generation
 
-    def initialize(config)
+    def initialize(config, state: nil)
       @config = config
-      @tracker = InnovationTracker.new(next_node_id: config.inputs + config.outputs)
-      @genomes = Array.new(config.population_size) { Genome.new(config, @tracker) }
-      @species = []
-      @generation = 0
+      if state
+        @tracker = state[:tracker]
+        @genomes = state[:genomes]
+        @generation = state[:generation]
+        @species = []
+      else
+        @tracker = InnovationTracker.new(next_node_id: config.inputs + config.outputs)
+        @genomes = Array.new(config.population_size) { Genome.new(config, @tracker) }
+        @species = []
+        @generation = 0
+      end
     end
 
     def evaluate!
@@ -37,6 +46,33 @@ module NEAT
         evolve!
       end
       evaluate! { |genome| yield(genome) }
+    end
+
+    def to_h
+      {
+        config: @config.to_h,
+        tracker: @tracker.to_h,
+        generation: @generation,
+        genomes: @genomes.map(&:to_h)
+      }
+    end
+
+    def self.from_h(hash, config: nil)
+      data = hash.transform_keys(&:to_sym)
+      config ||= Config.from_h(data.fetch(:config))
+      tracker = InnovationTracker.from_h(data.fetch(:tracker))
+      genomes = data.fetch(:genomes).map { |genome| Genome.from_h(genome, config: config, tracker: tracker) }
+      new(config, state: { tracker: tracker, genomes: genomes, generation: data.fetch(:generation) })
+    end
+
+    def dump(io = nil)
+      json = JSON.pretty_generate(to_h)
+      io ? io.write(json) : json
+    end
+
+    def self.load(source, config: nil)
+      hash = source.is_a?(String) ? JSON.parse(source) : source
+      from_h(hash, config: config)
     end
 
     private
