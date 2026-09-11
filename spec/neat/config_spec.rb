@@ -33,6 +33,24 @@ RSpec.describe NEAT::Config do
       config.seed = 123
       expect(config.rng.rand).to eq(first)
     end
+
+    it "defaults max_stagnation to 15" do
+      expect(config.max_stagnation).to eq(15)
+    end
+
+    it "defaults activation mutation off" do
+      expect(config.activation_mutation_rate).to eq(0.0)
+    end
+
+    it "includes hardening keys in to_h" do
+      expect(config.to_h).to include(
+        :max_stagnation,
+        :bias_mutation_rate,
+        :bias_perturb_rate,
+        :activation_mutation_rate,
+        :allowed_activations
+      )
+    end
   end
 
   describe "customization" do
