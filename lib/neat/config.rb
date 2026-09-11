@@ -6,6 +6,8 @@ module NEAT
       weight_mutation_rate weight_perturb_rate compatibility_threshold
       initial_connection_prob activation_default recurrent_allowed reenable_rate
       survival_threshold crossover_rate interspecies_mate_rate seed
+      max_stagnation bias_mutation_rate bias_perturb_rate
+      activation_mutation_rate allowed_activations
     ].freeze
 
     attr_accessor :population_size,
@@ -26,7 +28,12 @@ module NEAT
                   :reenable_rate,
                   :survival_threshold,
                   :crossover_rate,
-                  :interspecies_mate_rate
+                  :interspecies_mate_rate,
+                  :max_stagnation,
+                  :bias_mutation_rate,
+                  :bias_perturb_rate,
+                  :activation_mutation_rate,
+                  :allowed_activations
     attr_reader :seed
 
     def initialize
@@ -44,11 +51,17 @@ module NEAT
       @compatibility_threshold = 3.0
       @initial_connection_prob = 1.0
       @activation_default = :sigmoid
+      # Feedforward only. Kept for dump/load compatibility; ignored when adding connections.
       @recurrent_allowed = false
       @reenable_rate = 0.25
       @survival_threshold = 0.2
       @crossover_rate = 0.75
       @interspecies_mate_rate = 0.001
+      @max_stagnation = 15
+      @bias_mutation_rate = 0.7
+      @bias_perturb_rate = 0.9
+      @activation_mutation_rate = 0.0
+      @allowed_activations = %i[sigmoid tanh relu]
       @seed = nil
     end
 
@@ -69,6 +82,9 @@ module NEAT
       config = new
       hash.transform_keys(&:to_sym).slice(*SERIALIZABLE_KEYS).each do |key, value|
         value = value.to_sym if key == :activation_default && value
+        if key == :allowed_activations && value
+          value = Array(value).map { |v| v.to_sym }
+        end
         config.public_send("#{key}=", value)
       end
       config

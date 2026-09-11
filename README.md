@@ -1,6 +1,6 @@
 # neat
 
-Ruby implementation of [NEAT](https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies) (NeuroEvolution of Augmenting Topologies). Evolve both the structure and weights of neural networks with speciation, crossover aligned by historical innovations, and structural mutation.
+Ruby implementation of [NEAT](https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies) (NeuroEvolution of Augmenting Topologies). Evolve both the structure and weights of **feedforward** neural networks with speciation, crossover aligned by historical innovations, and structural mutation.
 
 ## Installation
 
@@ -22,6 +22,12 @@ Run the bundled XOR experiment:
 
 ```bash
 bundle exec ruby examples/xor.rb
+```
+
+Or a simpler AND experiment:
+
+```bash
+bundle exec ruby examples/and.rb
 ```
 
 Or use the CLI:
@@ -79,7 +85,29 @@ Population dumps include config, the shared innovation tracker, generation count
 
 ## Configuration
 
-`NEAT::Config` controls population size, I/O counts, compatibility threshold, mutation rates, crossover settings, activation default, and optional seed for reproducible runs. See `lib/neat/config.rb` for defaults.
+`NEAT::Config` controls population size, I/O counts, compatibility threshold, mutation rates, crossover settings, activation default, optional seed, and:
+
+| Knob | Default | Role |
+|------|---------|------|
+| `max_stagnation` | `15` | Drop species that do not improve for this many generations (best species is protected) |
+| `bias_mutation_rate` / `bias_perturb_rate` | `0.7` / `0.9` | Mutate non-input node biases (same style as weights) |
+| `activation_mutation_rate` | `0.0` | Opt-in swap among `allowed_activations` for hidden/output nodes |
+| `allowed_activations` | `%i[sigmoid tanh relu]` | Activation choices for mutation |
+| `recurrent_allowed` | `false` | **Ignored** — this library is feedforward-only; kept for dump/load compatibility |
+
+See `lib/neat/config.rb` for all defaults.
+
+### Feedforward only
+
+Networks are always feedforward. New connections only go from lower layer → higher layer. Evaluation uses a cached topological order over enabled edges and raises `NEAT::CyclicNetworkError` if a cycle is present.
+
+### Speciation & stagnation
+
+Genomes are clustered by compatibility distance. Each species tracks champion fitness; if it fails to improve for `max_stagnation` generations it is culled (unless it holds the global best genome). Offspring quotas use fitness sharing within species.
+
+### Evaluation cache
+
+`Genome#evaluate` caches the topological order and enabled incoming edges until the genome’s structure, weights, biases, activations, or enable flags change.
 
 ## Development
 

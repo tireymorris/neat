@@ -31,6 +31,8 @@ module NEAT
       prepare_species_shells
       @genomes.each { |genome| assign_species(genome) }
       @species.reject! { |species| species.members.empty? }
+      @species.each(&:update_staleness!)
+      cull_stagnant_species!
     end
 
     def evolve!
@@ -98,6 +100,17 @@ module NEAT
       species = Species.new(genome)
       species.add(genome)
       @species << species
+    end
+
+    def cull_stagnant_species!
+      return if @species.size <= 1
+
+      best_species = @species.max_by { |s| s.champion.fitness }
+      @species.reject! do |species|
+        next false if species.equal?(best_species)
+
+        species.stagnant?(@config)
+      end
     end
 
     def reproduce

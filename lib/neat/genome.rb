@@ -10,6 +10,7 @@ module NEAT
       @node_genes = {}
       @connection_genes = {}
       @fitness = -Float::INFINITY
+      invalidate_phenotype!
 
       if build_initial
         build_base_nodes
@@ -47,11 +48,13 @@ module NEAT
 
     def add_node(gene)
       @node_genes[gene.id] = gene
+      invalidate_phenotype!
     end
 
     def add_connection(gene)
       return false unless @node_genes.key?(gene.in_node) && @node_genes.key?(gene.out_node)
       @connection_genes[gene.innovation] = gene
+      invalidate_phenotype!
       true
     end
 
@@ -59,8 +62,14 @@ module NEAT
       @config.rng.rand * 4.0 - 2.0
     end
 
+    def random_bias
+      @config.rng.rand * 4.0 - 2.0
+    end
+
     def mutate
       mutate_weights
+      mutate_biases
+      mutate_activations
       mutate_add_connection if @config.rng.rand < @config.add_connection_rate
       mutate_add_node if @config.rng.rand < @config.add_node_rate
       mutate_toggle_enable if @config.rng.rand < @config.toggle_enable_rate
@@ -76,20 +85,55 @@ module NEAT
         end
         gene.weight = [[gene.weight, -8.0].max, 8.0].min
       end
+      invalidate_phenotype!
+    end
+
+    def mutate_biases
+      @node_genes.each do |_, node|
+        next if node.input?
+        next unless @config.rng.rand < @config.bias_mutation_rate
+
+        if @config.rng.rand < @config.bias_perturb_rate
+          node.bias += @config.rng.rand * 2.0 - 1.0
+        else
+          node.bias = random_bias
+        end
+        node.bias = [[node.bias, -8.0].max, 8.0].min
+      end
+      invalidate_phenotype!
+    end
+
+    def mutate_activations
+      return if @config.activation_mutation_rate.to_f <= 0.0
+
+      allowed = Array(@config.allowed_activations).map(&:to_sym)
+      return if allowed.empty?
+
+      @node_genes.each do |_, node|
+        next if node.input?
+        next unless @config.rng.rand < @config.activation_mutation_rate
+
+        choices = allowed.reject { |a| a == node.activation }
+        next if choices.empty?
+
+        node.activation = choices.sample(random: @config.rng)
+      end
+      invalidate_phenotype!
     end
 
     def mutate_add_connection
       candidates = []
       nodes = @node_genes.values
 
+      # Feedforward only: connections must go from lower layer to higher layer.
+      # Config#recurrent_allowed is ignored (kept for serialization compatibility).
       nodes.each do |src|
         nodes.each do |dst|
           next if src.id == dst.id
-          if @config.recurrent_allowed
-            candidates << [src, dst] unless connection_between?(src.id, dst.id)
-          elsif src.layer && dst.layer && src.layer < dst.layer && !connection_between?(src.id, dst.id)
-            candidates << [src, dst]
-          end
+          next unless src.layer && dst.layer && src.layer < dst.layer
+          next if connection_between?(src.id, dst.id)
+
+          candidates << [src, dst]
         end
       end
 
@@ -124,23 +168,18 @@ module NEAT
       return if @connection_genes.empty?
       gene = @connection_genes.values.sample(random: @config.rng)
       gene.enabled = !gene.enabled
+      invalidate_phenotype!
     end
 
     def evaluate(inputs)
-      order = topological_order
-      values = {}
+      order, incoming = phenotype
 
+      values = {}
       input_ids = nodes_of_type(:input).map(&:id)
       output_ids = nodes_of_type(:output).map(&:id)
 
       input_ids.each_with_index { |id, idx| values[id] = inputs[idx] || 0.0 }
       (@node_genes.keys - input_ids).each { |id| values[id] = @node_genes[id].bias }
-
-      incoming = Hash.new { |h, k| h[k] = [] }
-      @connection_genes.each do |_, c|
-        next unless c.enabled
-        incoming[c.out_node] << c
-      end
 
       order.each do |id|
         next if input_ids.include?(id)
@@ -291,7 +330,25 @@ module NEAT
       @node_genes.values.select { |n| n.type == type }
     end
 
+    def invalidate_phenotype!
+      @phenotype_order = nil
+      @phenotype_incoming = nil
+    end
+
     private
+
+    def phenotype
+      unless @phenotype_order
+        @phenotype_order = topological_order
+        incoming = Hash.new { |h, k| h[k] = [] }
+        @connection_genes.each do |_, c|
+          next unless c.enabled
+          incoming[c.out_node] << c
+        end
+        @phenotype_incoming = incoming
+      end
+      [@phenotype_order, @phenotype_incoming]
+    end
 
     def serialize_float(value)
       return "Infinity" if value == Float::INFINITY

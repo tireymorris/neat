@@ -19,6 +19,8 @@ config = NEAT::Config.new.tap do |c|
   c.compatibility_threshold = 3.0
   c.add_connection_rate = 0.3
   c.add_node_rate = 0.1
+  c.bias_mutation_rate = 0.0 # explicit bias input
+  c.activation_mutation_rate = 0.0
   c.seed = 1
 end
 

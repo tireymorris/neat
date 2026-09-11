@@ -1,11 +1,13 @@
 module NEAT
   class Species
-    attr_accessor :representative
+    attr_accessor :representative, :staleness, :max_fitness
     attr_reader :members
 
     def initialize(representative)
       @representative = representative
       @members = []
+      @staleness = 0
+      @max_fitness = -Float::INFINITY
     end
 
     def add(genome)
@@ -27,6 +29,22 @@ module NEAT
 
     def champion
       @members.max_by(&:fitness)
+    end
+
+    def update_staleness!
+      return if @members.empty?
+
+      champ = champion.fitness
+      if champ > @max_fitness
+        @max_fitness = champ
+        @staleness = 0
+      else
+        @staleness += 1
+      end
+    end
+
+    def stagnant?(config)
+      @staleness >= config.max_stagnation
     end
 
     def survivors(config)
